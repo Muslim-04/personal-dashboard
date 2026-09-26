@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Personal Dashboard
 
-## Getting Started
+Личный веб-дашборд: финансы по проектам, задачи/режим дня, тренировки.
+Next.js + TypeScript + Tailwind, данные хранятся в браузере (localStorage)
+и зеркалируются в Google Таблицу через Apps Script.
 
-First, run the development server:
+- Без логина — личное использование одним человеком
+- Мобильная нижняя навигация из 3 вкладок, тёмная тема
+- Ссылка не индексируется поисковиками (`robots: noindex` в `layout.tsx`)
+
+## Запуск локально
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откроется на http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Google Таблица — пошаговая настройка (один раз)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Данные и без этого работают локально (localStorage) — синхронизация
+с таблицей нужна, только если хотите видеть записи ещё и в Google Sheets.
 
-## Learn More
+1. Создайте новую таблицу: [sheets.new](https://sheets.new)
+2. В таблице: меню **Расширения → Apps Script**
+3. Откройте файл `apps-script/Code.gs` из этого проекта, скопируйте всё содержимое
+4. В открывшемся редакторе Apps Script удалите заготовку и вставьте скопированный код
+5. Сохраните (Ctrl+S)
+6. **Развернуть → Новое развёртывание**
+   - Тип: **Веб-приложение**
+   - Выполнять как: **Я** (ваш аккаунт)
+   - У кого доступ: **Все**
+7. Нажмите **Развернуть**. Google запросит авторизацию:
+   - «Google не проверил это приложение» — это нормально для собственного скрипта
+   - Нажмите **Дополнительно** → **Перейти на страницу ... (небезопасно)** → **Разрешить**
+8. Скопируйте выданный **URL веб-приложения** (заканчивается на `/exec`)
+9. В корне проекта скопируйте `.env.local.example` в `.env.local` и вставьте URL:
+   ```
+   NEXT_PUBLIC_SHEETS_WEBHOOK_URL=https://script.google.com/macros/s/.../exec
+   NEXT_PUBLIC_SHEETS_TOKEN=personal-dashboard-secret-2024
+   ```
+10. Перезапустите `npm run dev`
 
-To learn more about Next.js, take a look at the following resources:
+Листы **Finance**, **Tasks**, **Workouts** создадутся в таблице автоматически
+при первой записи каждого типа — вручную ничего создавать не нужно.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Если что-то не пишется в таблицу — откройте Apps Script редактор и запустите
+вручную функцию `testFinance`, `testTask` или `testWorkout` (выпадающий список
+функций сверху → выбрать → ▶ Выполнить) — в логе будет видна ошибка.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Деплой на Vercel (постоянная ссылка в интернете)
 
-## Deploy on Vercel
+1. Создайте репозиторий на GitHub и запушьте туда проект:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/<ваш-логин>/personal-dashboard.git
+   git push -u origin main
+   ```
+2. Зайдите на [vercel.com](https://vercel.com), войдите через GitHub
+3. **Add New → Project**, выберите репозиторий `personal-dashboard`
+4. Vercel сам определит, что это Next.js — ничего менять не нужно
+5. В разделе **Environment Variables** добавьте те же переменные, что в `.env.local`:
+   - `NEXT_PUBLIC_SHEETS_WEBHOOK_URL`
+   - `NEXT_PUBLIC_SHEETS_TOKEN`
+6. **Deploy**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+После этого при каждом `git push` в `main` Vercel будет автоматически
+пересобирать и обновлять сайт — отдельно ничего запускать не нужно.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Ссылка будет вида `https://personal-dashboard-xxxx.vercel.app` — она не
+индексируется поисковиками, но доступна всем, у кого есть сама ссылка
+(это не то же самое, что защита паролем).
+
+## Технологии
+
+- Next.js 16 (App Router) + TypeScript
+- Tailwind CSS 4
+- recharts — графики
+- lucide-react — иконки
+- localStorage — основное хранилище, Google Sheets — синхронизированное зеркало
